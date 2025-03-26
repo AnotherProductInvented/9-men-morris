@@ -59,7 +59,70 @@
     <canvas id="gameCanvas" width="500" height="500"></canvas>
     <div class="status" id="gameStatus">Placing Phase - White's Turn</div>
     <div class="debug" id="debugLog"></div>
-    
+    <script>
+    // AI function should be defined before any usage
+    function aiMove() {
+        let availableMoves = getAvailableMoves(currentPlayer);
+        if (availableMoves.length === 0) return;
+
+        let move;
+
+        if (difficultyLevel === "easy") {
+            // Random move
+            move = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+        } else if (difficultyLevel === "medium") {
+            // Block opponent’s mills if possible
+            move = findBlockingMove("white") || availableMoves[Math.floor(Math.random() * availableMoves.length)];
+        } else if (difficultyLevel === "hard") {
+            // Try to form a mill or block opponent
+            move = findWinningMove("black") || findBlockingMove("white") || availableMoves[Math.floor(Math.random() * availableMoves.length)];
+        }
+
+        if (move !== undefined) {
+            pieces.push({ index: move, x: boardPositions[move].x, y: boardPositions[move].y, color: opponentColor });
+            logDebug(`AI placed/moved to position ${move}`);
+            
+            let mill = checkMill("black");
+            if (mill) {
+                logDebug("AI formed a mill!");
+                removeOpponentPiece();
+            }
+            
+            currentPlayer = "white";
+            updateStatus(`${phase.charAt(0).toUpperCase() + phase.slice(1)} Phase - White's Turn`);
+            checkWin();
+            drawBoard();
+        }
+    }
+
+    // Then all your other functions...
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const difficultySelect = document.getElementById("difficulty");
+    let difficultyLevel = "easy";
+    const colorSelect = document.getElementById("playerColor");
+    let playerColor = "white";
+
+    // Listen for color change and set player color
+    colorSelect.addEventListener("change", () => {
+        playerColor = colorSelect.value;
+        currentPlayer = playerColor;
+        opponentColor = playerColor === "white" ? "black" : "white";
+        logDebug(`Player color set to: ${playerColor}`);
+        updateStatus(`Placing Phase - ${playerColor.charAt(0).toUpperCase() + playerColor.slice(1)}'s Turn`);
+        if (playerColor === "black") {
+            setTimeout(aiMove, 500);
+        }
+    });
+
+    difficultySelect.addEventListener("change", () => {
+        difficultyLevel = difficultySelect.value;
+        logDebug(`Difficulty set to: ${difficultyLevel}`);
+    });
+
+    // Rest of the code continues...
+</script>
+
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
@@ -199,41 +262,6 @@ if (playerColor === "black" && currentPlayer === "black") {
     setTimeout(aiMove, 500);
 }
 
-
-
-  function aiMove() {
-    let availableMoves = getAvailableMoves(currentPlayer);
-    if (availableMoves.length === 0) return;
-
-    let move;
-
-    if (difficultyLevel === "easy") {
-        // Random move
-        move = availableMoves[Math.floor(Math.random() * availableMoves.length)];
-    } else if (difficultyLevel === "medium") {
-        // Block opponent’s mills if possible
-        move = findBlockingMove("white") || availableMoves[Math.floor(Math.random() * availableMoves.length)];
-    } else if (difficultyLevel === "hard") {
-        // Try to form a mill or block opponent
-        move = findWinningMove("black") || findBlockingMove("white") || availableMoves[Math.floor(Math.random() * availableMoves.length)];
-    }
-
-    if (move !== undefined) {
-        pieces.push({ index: move, x: boardPositions[move].x, y: boardPositions[move].y, color: opponentColor });
-        logDebug(`AI placed/moved to position ${move}`);
-        
-        let mill = checkMill("black");
-        if (mill) {
-            logDebug("AI formed a mill!");
-            removeOpponentPiece();
-        }
-        
-        currentPlayer = "white";
-        updateStatus(`${phase.charAt(0).toUpperCase() + phase.slice(1)} Phase - White's Turn`);
-        checkWin();
-        drawBoard();
-    }
-}
 
 // Helper to check available moves
 function getAvailableMoves(player) {
