@@ -54,42 +54,12 @@
             <option value="black">Black</option>
         </select>
     </div>
+
     <canvas id="gameCanvas" width="500" height="500"></canvas>
     <div class="status" id="gameStatus">Placing Phase - White's Turn</div>
     <div class="debug" id="debugLog"></div>
+
     <script>
-        // AI function should be defined before any usage
-        function aiMove() {
-            let availableMoves = getAvailableMoves(currentPlayer);
-            if (availableMoves.length === 0) return;
-
-            let move;
-
-            if (difficultyLevel === "easy") {
-                move = availableMoves[Math.floor(Math.random() * availableMoves.length)];
-            } else if (difficultyLevel === "medium") {
-                move = findBlockingMove("white") || availableMoves[Math.floor(Math.random() * availableMoves.length)];
-            } else if (difficultyLevel === "hard") {
-                move = findWinningMove("black") || findBlockingMove("white") || availableMoves[Math.floor(Math.random() * availableMoves.length)];
-            }
-
-            if (move !== undefined) {
-                pieces.push({ index: move, x: boardPositions[move].x, y: boardPositions[move].y, color: opponentColor });
-                logDebug(`AI placed/moved to position ${move}`);
-                
-                let mill = checkMill("black");
-                if (mill) {
-                    logDebug("AI formed a mill!");
-                    removeOpponentPiece();
-                }
-                
-                currentPlayer = "white";
-                updateStatus(`${phase.charAt(0).toUpperCase() + phase.slice(1)} Phase - White's Turn`);
-                checkWin();
-                drawBoard();
-            }
-        }
-
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
         const difficultySelect = document.getElementById("difficulty");
@@ -97,22 +67,7 @@
         const colorSelect = document.getElementById("playerColor");
         let playerColor = "white";
 
-        colorSelect.addEventListener("change", () => {
-            playerColor = colorSelect.value;
-            currentPlayer = playerColor;
-            opponentColor = playerColor === "white" ? "black" : "white";
-            logDebug(`Player color set to: ${playerColor}`);
-            updateStatus(`Placing Phase - ${playerColor.charAt(0).toUpperCase() + playerColor.slice(1)}'s Turn`);
-            if (playerColor === "black") {
-                setTimeout(aiMove, 500);
-            }
-        });
-
-        difficultySelect.addEventListener("change", () => {
-            difficultyLevel = difficultySelect.value;
-            logDebug(`Difficulty set to: ${difficultyLevel}`);
-        });
-
+        // Game state
         const boardPositions = [
             { x: 50, y: 50 }, { x: 250, y: 50 }, { x: 450, y: 50 },
             { x: 100, y: 100 }, { x: 250, y: 100 }, { x: 400, y: 100 },
@@ -133,8 +88,8 @@
         ];
 
         let pieces = [];
-        let currentPlayer = "white"; // Default to white player
-
+        let currentPlayer = "white";
+        let opponentColor = "black";
         let phase = "placing";
         let selectedPiece = null;
         let gameOver = false;
@@ -155,6 +110,7 @@
             ctx.strokeStyle = "black";
             ctx.lineWidth = 3;
 
+            // Draw the board
             ctx.beginPath();
             ctx.rect(50, 50, 400, 400);
             ctx.rect(100, 100, 300, 300);
@@ -169,6 +125,7 @@
             ctx.lineTo(450, 250);
             ctx.stroke();
 
+            // Draw the positions
             for (let pos of boardPositions) {
                 ctx.beginPath();
                 ctx.arc(pos.x, pos.y, 5, 0, Math.PI * 2);
@@ -176,6 +133,7 @@
                 ctx.fill();
             }
 
+            // Draw the pieces
             for (let piece of pieces) {
                 ctx.beginPath();
                 ctx.arc(piece.x, piece.y, 15, 0, Math.PI * 2);
@@ -221,43 +179,25 @@
                 updateStatus('<span class="winner">White Wins!</span>');
                 gameOver = true;
             }
-
-            if (playerColor === "black" && currentPlayer === "black") {
-                setTimeout(aiMove, 500);
-            }
         }
 
-        function getAvailableMoves(player) {
-            return boardPositions.map((_, index) => index).filter(index => !pieces.some(p => p.index === index));
+        // AI Move logic (if needed)
+        function aiMove() {
+            // AI logic would go here
         }
 
-        function findBlockingMove(opponent) {
-            for (let pos of getAvailableMoves(currentPlayer)) {
-                let tempPieces = [...pieces, { index: pos, color: "black" }];
-                if (checkTempMill(opponent, tempPieces)) {
-                    return pos;
-                }
-            }
-            return null;
-        }
+        colorSelect.addEventListener("change", () => {
+            playerColor = colorSelect.value;
+            currentPlayer = playerColor;
+            opponentColor = playerColor === "white" ? "black" : "white";
+            logDebug(`Player color set to: ${playerColor}`);
+            updateStatus(`Placing Phase - ${playerColor.charAt(0).toUpperCase() + playerColor.slice(1)}'s Turn`);
+        });
 
-        function findWinningMove(player) {
-            for (let pos of getAvailableMoves(currentPlayer)) {
-                let tempPieces = [...pieces, { index: pos, color: "black" }];
-                if (checkTempMill(player, tempPieces)) {
-                    return pos;
-                }
-            }
-            return null;
-        }
-
-        function checkTempMill(player, tempPieces) {
-            for (let mill of mills) {
-                let count = mill.filter(i => tempPieces.some(p => p.index === i && p.color === player)).length;
-                if (count === 3) return true;
-            }
-            return false;
-        }
+        difficultySelect.addEventListener("change", () => {
+            difficultyLevel = difficultySelect.value;
+            logDebug(`Difficulty set to: ${difficultyLevel}`);
+        });
 
         canvas.addEventListener("click", (event) => {
             if (gameOver) return;
@@ -273,7 +213,7 @@
                 if (!pieces.some(p => p.index === posIndex)) {
                     pieces.push({ index: posIndex, x: boardPositions[posIndex].x, y: boardPositions[posIndex].y, color: currentPlayer });
                     logDebug(`${currentPlayer} placed a piece at position ${posIndex}`);
-
+                    
                     let mill = checkMill(currentPlayer);
                     if (mill) {
                         logDebug(`${currentPlayer} formed a mill!`);
@@ -282,10 +222,6 @@
 
                     currentPlayer = currentPlayer === "white" ? "black" : "white";
                     updateStatus(`Placing Phase - ${currentPlayer}'s Turn`);
-
-                    if (currentPlayer === "black") {
-                        setTimeout(aiMove, 500);
-                    }
 
                     // Phase transition when all pieces are placed
                     if (pieces.filter(p => p.color === "white").length === 9 && pieces.filter(p => p.color === "black").length === 9) {
@@ -296,49 +232,10 @@
                 }
             }
 
-            // Check for moving phase
-            if (phase === "moving") {
-                if (selectedPiece) {
-                    let isEmpty = !pieces.some(p => p.index === posIndex);
-                    if (isEmpty) {
-                        let canMove = phase === "flying" || isAdjacent(selectedPiece.index, posIndex);
-                        if (canMove) {
-                            logDebug(`${currentPlayer} moved a piece to position ${posIndex}`);
-                            selectedPiece.index = posIndex;
-                            selectedPiece.x = boardPositions[posIndex].x;
-                            selectedPiece.y = boardPositions[posIndex].y;
-
-                            let mill = checkMill(currentPlayer);
-                            if (mill) {
-                                logDebug(`${currentPlayer} formed a mill!`);
-                                removeOpponentPiece();
-                            }
-
-                            selectedPiece = null;
-                            currentPlayer = currentPlayer === "white" ? "black" : "white";
-
-                            updateStatus(`Moving Phase - ${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}'s Turn`);
-
-                            checkPhase();  // Check for phase transition
-                            if (currentPlayer === "black" && !gameOver) {
-                                setTimeout(aiMove, 500);
-                            }
-                        }
-                    }
-                } else {
-                    selectedPiece = pieces.find(p => p.index === posIndex && p.color === currentPlayer);
-                }
-            }
+            drawBoard();
         });
 
-        function isAdjacent(from, to) {
-            const adjacents = [
-                [0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11], [12, 13, 14], [15, 16, 17],
-                [18, 19, 20], [21, 22, 23], [0, 9, 21], [1, 4, 7], [2, 14, 23],
-                [5, 13, 20]
-            ];
-            return adjacents.some( arr => arr.includes(from) && arr.includes(to));
-        }
+        drawBoard();
     </script>
 </body>
 </html>
